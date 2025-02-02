@@ -10,7 +10,7 @@ import os
 bot = telebot.TeleBot('7906423604:AAFuOK7mNjqsDKQqEjEmA9fH-RaXpn5z6Jo')
 
 # Admin user IDs
-admin_id = ["5689106127, 6910445402, 5696319794"]
+admin_id = ["5689106127", "6910445402", "5696319794"]
 
 # File to store allowed user IDs
 USER_FILE = "users.txt"
@@ -26,22 +26,6 @@ def read_users():
             return file.read().splitlines()
     except FileNotFoundError:
         return []
-
-# Function to read free user IDs and their credits from the file
-def read_free_users():
-    try:
-        with open(FREE_USER_FILE, "r") as file:
-            lines = file.read().splitlines()
-            for line in lines:
-                if line.strip():  # Check if line is not empty
-                    user_info = line.split()
-                    if len(user_info) == 2:
-                        user_id, credits = user_info
-                        free_user_credits[user_id] = int(credits)
-                    else:
-                        print(f"Ignoring invalid line in free user file: {line}")
-    except FileNotFoundError:
-        pass
 
 
 # List to store allowed user IDs
@@ -72,6 +56,7 @@ def clear_logs():
         response = "No logs found to clear."
     return response
 
+
 # Function to record command logs
 def record_command_logs(user_id, command, target=None, port=None, time=None):
     log_entry = f"UserID: {user_id} | Time: {datetime.datetime.now()} | Command: {command}"
@@ -84,6 +69,7 @@ def record_command_logs(user_id, command, target=None, port=None, time=None):
     
     with open(LOG_FILE, "a") as file:
         file.write(log_entry + "\n")
+
 
 @bot.message_handler(commands=['add'])
 def add_user(message):
@@ -105,7 +91,6 @@ def add_user(message):
         response = "Only Admin Can Run This Command."
 
     bot.reply_to(message, response)
-
 
 
 @bot.message_handler(commands=['remove'])
@@ -150,7 +135,6 @@ def clear_logs_command(message):
         response = "Only Admin Can Run This Command."
     bot.reply_to(message, response)
 
- 
 
 @bot.message_handler(commands=['allusers'])
 def show_all_users(message):
@@ -202,6 +186,7 @@ def show_user_id(message):
     response = f"Your ID: {user_id}"
     bot.reply_to(message, response)
 
+
 # Function to handle the reply when free users run the /bgmi command
 def start_attack_reply(message, target, port, time):
     user_info = message.from_user
@@ -210,10 +195,12 @@ def start_attack_reply(message, target, port, time):
     response = f"{username}, 𝐀𝐓𝐓𝐀𝐂𝐊 𝐒𝐓𝐀𝐑𝐓𝐄𝐃.\n\n𝐓𝐚𝐫𝐠𝐞𝐭: {target}\n𝐏𝐨𝐫𝐭: {port}\n𝐓𝐢𝐦𝐞: {time} 𝐒𝐞𝐜𝐨𝐧𝐝𝐬\n𝐌𝐞𝐭𝐡𝐨𝐝: BGMI\nBy @Indivual1X"
     bot.reply_to(message, response)
 
+
 # Dictionary to store the last time each user ran the /bgmi command
 bgmi_cooldown = {}
 
-COOLDOWN_TIME =0
+COOLDOWN_TIME = 0
+
 
 # Handler for /bgmi command
 @bot.message_handler(commands=['bgmi'])
@@ -261,8 +248,6 @@ def handle_bgmi(message):
     bot.reply_to(message, response)
 
 
-
-
 # Add /mylogs command to display logs recorded for bgmi and website commands
 @bot.message_handler(commands=['mylogs'])
 def show_command_logs(message):
@@ -306,6 +291,7 @@ def show_help(message):
                 help_text += f"{handler.commands[0]}: {handler.doc}\n"
     bot.reply_to(message, help_text)
 
+
 @bot.message_handler(commands=['start'])
 def welcome_start(message):
     user_name = message.from_user.first_name
@@ -340,6 +326,7 @@ Month-->1600 Rs
 To Buy Any Plan Dm @Indivual1X
 '''
     bot.reply_to(message, response)
+
 
 @bot.message_handler(commands=['admincmd'])
 def welcome_plan(message):
@@ -377,8 +364,6 @@ def broadcast_message(message):
         response = "Only Admin Can Run This Command."
 
     bot.reply_to(message, response)
-
-
 
 
 bot.polling()
