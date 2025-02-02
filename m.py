@@ -10,7 +10,7 @@ import os
 bot = telebot.TeleBot('7906423604:AAFuOK7mNjqsDKQqEjEmA9fH-RaXpn5z6Jo')
 
 # Admin user IDs
-admin_id = ["5689106127"]
+admin_id = ["5689106127, 6910445402, 5696319794"]
 
 # File to store allowed user IDs
 USER_FILE = "users.txt"
@@ -223,7 +223,7 @@ def handle_bgmi(message):
         # Check if the user is in admin_id (admins have no cooldown)
         if user_id not in admin_id:
             # Check if the user has run the command before and is still within the cooldown period
-            if user_id in bgmi_cooldown and (datetime.datetime.now() - bgmi_cooldown[user_id]).seconds < 500:
+            if user_id in bgmi_cooldown and (datetime.datetime.now() - bgmi_cooldown[user_id]).seconds < 300:
                 response = "You Are On Cooldown. Please Wait 5 Minutes Before Running The /bgmi Command Again."
                 bot.reply_to(message, response)
                 return
@@ -319,9 +319,9 @@ def welcome_plan(message):
     response = f'''{user_name}, Brother Only 1 Plan Is Powerfull Then Any Other Ddos !!:
 
 Vip :
--> Attack Time : 400 (S)
-> After Attack Limit : 4 Min
--> Concurrents Attack : 500
+-> Attack Time : 200 (S)
+> After Attack Limit : 2 Min
+-> Concurrents Attack : 300
 
 Pr-ice List:
 Day-->150 Rs
